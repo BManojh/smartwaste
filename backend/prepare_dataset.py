@@ -1,0 +1,76 @@
+from __future__ import annotations
+
+import shutil
+from pathlib import Path
+
+import yaml
+
+
+def _clean_name(name: str) -> str:
+    return name.strip().lstrip(",").strip()
+
+
+def main() -> None:
+    source_root = Path("Trashnet/Dataset")
+    images_dir = source_root / "images"
+    labels_dir = source_root / "labels"
+    yaml_path = source_root / "data.yaml"
+
+    if not yaml_path.exists():
+        raise FileNotFoundError(f"Missing dataset config: {yaml_path}")
+
+    with yaml_path.open("r", encoding="utf-8") as handle:
+        config = yaml.safe_load(handle)
+
+    class_names = [_clean_name(item) for item in config.get("names", [])]
+    if not class_names:
+        raise ValueError("No class names found in data.yaml")
+
+    output_root = Path("data/trashnet")
+    output_root.mkdir(parents=True, exist_ok=True)
+
+    for name in class_names:
+        (output_root / name).mkdir(exist_ok=True)
+
+    label_files = sorted(labels_dir.glob("*.txt"))
+    if not label_files:
+        raise FileNotFoundError("No label files found in Trashnet/Dataset/labels")
+
+    copied = 0
+    for label_file in label_files:
+        content = label_file.read_text(encoding="utf-8").strip().splitlines()
+        if not content:
+            continue
+
+        first_line = content[0].split()
+        if not first_line:
+            continue
+
+        class_index = int(float(first_line[0]))
+        if class_index < 0 or class_index >= len(class_names):
+            continue
+
+        class_name = class_names[class_index]
+        stem = label_file.stem
+        image_path = None
+
+        for extension in (".jpg", ".jpeg", ".png"):
+            candidate = images_dir / f"{stem}{extension}"
+            if candidate.exists():
+                image_path = candidate
+                break
+
+        if image_path is None:
+            continue
+
+        target_path = output_root / class_name / image_path.name
+        if not target_path.exists():
+            shutil.copy2(image_path, target_path)
+            copied += 1
+
+    print(f"Prepared classification dataset at {output_root}")
+    print(f"Images copied: {copied}")
+
+
+if __name__ == "__main__":
+    main()
