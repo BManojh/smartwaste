@@ -7,9 +7,9 @@ import yaml
 
 
 def _clean_name(name: str) -> str:
-    return name.strip().lstrip(",").strip()
+    return name.strip().lstrip(",").strip()    
 
-
+ 
 def main() -> None:
     source_root = Path("Trashnet/Dataset")
     images_dir = source_root / "images"
@@ -37,18 +37,37 @@ def main() -> None:
         raise FileNotFoundError("No label files found in Trashnet/Dataset/labels")
 
     copied = 0
+    skipped_empty = 0
+    skipped_multi_class = 0
+    skipped_invalid = 0
+    skipped_missing_image = 0
     for label_file in label_files:
         content = label_file.read_text(encoding="utf-8").strip().splitlines()
         if not content:
+            skipped_empty += 1
             continue
 
-        first_line = content[0].split()
-        if not first_line:
+        class_indices = set()
+        for line in content:
+            parts = line.split()
+            if not parts:
+                continue
+            try:
+                class_idx = int(float(parts[0]))
+            except ValueError:
+                continue
+            if 0 <= class_idx < len(class_names):
+                class_indices.add(class_idx)
+
+        if not class_indices:
+            skipped_invalid += 1
             continue
 
-        class_index = int(float(first_line[0]))
-        if class_index < 0 or class_index >= len(class_names):
+        if len(class_indices) != 1:
+            skipped_multi_class += 1
             continue
+
+        class_index = next(iter(class_indices))
 
         class_name = class_names[class_index]
         stem = label_file.stem
@@ -60,7 +79,9 @@ def main() -> None:
                 image_path = candidate
                 break
 
+
         if image_path is None:
+            skipped_missing_image += 1
             continue
 
         target_path = output_root / class_name / image_path.name
@@ -68,8 +89,12 @@ def main() -> None:
             shutil.copy2(image_path, target_path)
             copied += 1
 
-    print(f"Prepared classification dataset at {output_root}")
+    print(f"Prepared classification dataset at {output_root76w}")
     print(f"Images copied: {copied}")
+    print(f"Skipped empty labels: {skipped_empty}")
+    print(f"Skipped invalid labels: {skipped_invalid}")
+    print(f"Skipped multi-class labels: {skipped_multi_class}")
+    print(f"Skipped missing images: {skipped_missing_image}")
 
 
 if __name__ == "__main__":

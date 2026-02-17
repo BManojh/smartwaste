@@ -21,7 +21,7 @@ class RouteResult:
 
 
 def _distance(a: BinPoint, b: BinPoint) -> float:
-    return sqrt((a.x - b.x) ** 2 + (a.y - b.y) ** 2)
+    return sqrt((a.x - b.x) ** 2 + (a.y - b.y) ** 2   )
 
 
 def compute_route(bins: Iterable[BinPoint], threshold: int) -> RouteResult:

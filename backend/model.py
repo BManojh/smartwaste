@@ -24,7 +24,9 @@ CATEGORIES = [
     "metal",
     "plastic",
 ]
-DEFAULT_MODEL_PATH = os.environ.get("WASTE_MODEL_PATH", "models/waste_classifier.keras")
+# Get the backend directory path and construct the model path
+BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
+DEFAULT_MODEL_PATH = os.environ.get("WASTE_MODEL_PATH", os.path.join(BACKEND_DIR, "models", "waste_classifier.keras"))
 
 _MODEL = None
 _MODEL_MODE = "demo"
@@ -71,7 +73,7 @@ def _preprocess(image_bytes: bytes) -> np.ndarray:
 
     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
     image = cv2.resize(image, (224, 224))
-    image = image.astype("float32") / 255.0
+    image = image.astype("float32")
     return np.expand_dims(image, axis=0)
 
 
