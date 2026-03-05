@@ -30,6 +30,7 @@ DEFAULT_MODEL_PATH = os.environ.get("WASTE_MODEL_PATH", os.path.join(BACKEND_DIR
 
 _MODEL = None
 _MODEL_MODE = "demo"
+LOW_CONFIDENCE_THRESHOLD = 0.7
 
 
 @dataclass
@@ -37,13 +38,29 @@ class Prediction:
     category: str
     confidence: float
     mode: str
+    review_required: bool
+    top_predictions: list[dict[str, float | str]]
 
 
 def _demo_predict(image_bytes: bytes) -> Prediction:
     if not image_bytes:
-        return Prediction(category="unknown", confidence=0.0, mode="demo")
+        return Prediction(
+            category="unknown",
+            confidence=0.0,
+            mode="demo",
+            review_required=True,
+            top_predictions=[{"category": "unknown", "confidence": 0.0}],
+        )
     index = sum(image_bytes) % len(CATEGORIES)
-    return Prediction(category=CATEGORIES[index], confidence=0.6, mode="demo")
+    category = CATEGORIES[index]
+    confidence = 0.6
+    return Prediction(
+        category=category,
+        confidence=confidence,
+        mode="demo",
+        review_required=confidence < LOW_CONFIDENCE_THRESHOLD,
+        top_predictions=[{"category": category, "confidence": confidence}],
+    )
 
 
 def _load_real_model() -> None:
@@ -87,4 +104,20 @@ def predict(image_bytes: bytes) -> Prediction:
     scores = _MODEL.predict(processed, verbose=0)[0]
     index = int(np.argmax(scores))
     confidence = float(scores[index])
-    return Prediction(category=CATEGORIES[index], confidence=confidence, mode=_MODEL_MODE)
+
+    sorted_indices = np.argsort(scores)[::-1][:3]
+    top_predictions = [
+        {
+            "category": CATEGORIES[int(item_index)],
+            "confidence": float(scores[int(item_index)]),
+        }
+        for item_index in sorted_indices
+    ]
+
+    return Prediction(
+        category=CATEGORIES[index],
+        confidence=confidence,
+        mode=_MODEL_MODE,
+        review_required=confidence < LOW_CONFIDENCE_THRESHOLD,
+        top_predictions=top_predictions,
+    )

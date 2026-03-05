@@ -166,7 +166,7 @@ export default function App() {
   }, [selectedCity]);
 
   const assignedBin = useMemo(() => {
-    if (!result?.category) {
+    if (!result?.category || result?.reviewRequired) {
       return null;
     }
     return BIN_CATEGORIES.find((bin) => bin.key === result.category) ?? null;
@@ -233,7 +233,7 @@ export default function App() {
 
     setFile(droppedFile);
     setError("");
-    setResult(null);
+    setResult(null);no
 
     // Create image preview
     if (imagePreview) {
@@ -738,23 +738,42 @@ export default function App() {
                       <strong>File:</strong> {result.filename}
                     </p>
                     <p>
-                      <strong>Category:</strong> {result.category}
+                      <strong>Category:</strong>{" "}
+                      {result.reviewRequired
+                        ? `uncertain (best guess: ${result.category})`
+                        : result.category}
                     </p>
                     <p>
-                      <strong>Confidence:</strong> {result.confidence}
+                      <strong>Confidence:</strong> {Number(result.confidence).toFixed(4)}
                     </p>
                     <p>
                       <strong>Mode:</strong> {result.mode}
                     </p>
-                    {result.confidence < 0.7 && (
+                    {result.reviewRequired && (
                       <div className="confidence-warning">
                         ⚠️ Low confidence — verify assignment manually
                       </div>
                     )}
+                    {Array.isArray(result.topPredictions) && result.topPredictions.length > 1 && (
+                      <p>
+                        <strong>Top matches:</strong>{" "}
+                        {result.topPredictions
+                          .slice(0, 3)
+                          .map(
+                            (item) =>
+                              `${item.category} (${Number(item.confidence).toFixed(3)})`
+                          )
+                          .join(", ")}
+                      </p>
+                    )}
                     <div className="assignment">
                       <span className="assignment-label">Assigned bin</span>
                       <span className="assignment-value">
-                        {assignedBin ? assignedBin.label : "Unmapped"}
+                        {result.reviewRequired
+                          ? "Manual verification required"
+                          : assignedBin
+                            ? assignedBin.label
+                            : "Unmapped"}
                       </span>
                     </div>
                   </div>

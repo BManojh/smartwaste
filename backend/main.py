@@ -45,6 +45,8 @@ async def predict(file: UploadFile = File(...)) -> dict:
         "category": prediction.category,
         "confidence": prediction.confidence,
         "mode": prediction.mode,
+        "reviewRequired": prediction.review_required,
+        "topPredictions": prediction.top_predictions,
     }
 
 
