@@ -233,7 +233,7 @@ export default function App() {
 
     setFile(droppedFile);
     setError("");
-    setResult(null);no
+    setResult(null);
 
     // Create image preview
     if (imagePreview) {
